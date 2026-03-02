@@ -8,7 +8,7 @@
 ## Collections
 
 - **[infra.serverconfig](collections/serverconfig/README.md)** – Server configuration (base, identity, docker_extra, mounts).
-- **[infra.stack](collections/stack/README.md)** – Application stacks (WordPress, etc.) and base infrastructure.
+- **[infra.stack](collections/stack/README.md)** – Application stacks (WordPress, Django etc.)
 
 ## Installation
 
