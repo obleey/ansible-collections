@@ -1,0 +1,42 @@
+# Default SSH port for the serverconfig collection
+ssh_port: 4042
+
+# Path to the home dir for .bashrc where env vars are set (e.g. /root or /home/ubuntu)
+env_bashrc_path: "/root"
+# Optional extra env vars (list of { name: VAR_NAME, value: value })
+env_vars: []
+
+# Fail2Ban baseline settings
+f2b_maxretry: 5
+f2b_bantime: 600
+
+# Base packages - common across all systems
+base_packages_common:
+  - curl
+  - htop
+  - vim
+  - jq
+  - lsof
+  - unzip
+  - rsyslog
+  - git
+  - haveged
+  - net-tools
+  - fail2ban
+  - python3-pip
+
+# Firewall toggle – set to false to skip firewalld rules entirely
+firewall_enabled: true
+
+# Debian-specific packages
+base_packages_debian:
+  - unattended-upgrades
+  - python3-passlib
+  - python3-debian
+  - iotop
+
+# RedHat-specific packages
+base_packages_redhat:
+  - dnf-automatic
+  - python3-passlib
+  - iotop

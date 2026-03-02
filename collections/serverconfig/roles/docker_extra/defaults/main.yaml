@@ -1,0 +1,5 @@
+---
+# Sane defaults for Docker maintenance
+docker_prune_schedule: "Sun *-*-* 00:00:00"
+docker_image_prune_filters: "until=24h"
+docker_volume_prune_filters: "until=24h"

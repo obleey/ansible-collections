@@ -1,0 +1,7 @@
+[Unit]
+Description=Docker Image Cleanup (All Unused)
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker image prune -af --filter "{{ docker_image_prune_filters | default('until=24h') }}"

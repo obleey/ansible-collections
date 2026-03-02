@@ -1,0 +1,92 @@
+---
+- name: Validate Identity Variables
+  ansible.builtin.assert:
+    that:
+      - base_user is defined
+      - base_user_keys is defined
+      - breakglass_user is defined
+      - breakglass_keys is defined
+    fail_msg: "Required variables are missing. Check host_vars/{{ server_environment }}/{{ inventory_hostname }}.yaml"
+
+# --- 1. THE STANDARD USER (Daily Driver) ---
+- name: Setup Standard User ({{ base_user }})
+  ansible.builtin.user:
+    name: "{{ base_user }}"
+    shell: /bin/bash
+    groups: sudo
+    append: yes
+    password: "{{ base_user_password_hash | default('!') }}" # Locked by default unless hash provided
+
+- name: Deploy SSH keys for {{ base_user }}
+  ansible.builtin.authorized_key:
+    user: "{{ base_user }}"
+    key: "{{ item }}"
+    state: present
+  loop: "{{ base_user_keys }}"
+  no_log: true
+
+# --- 2. THE BREAKGLASS USER (Emergency Only) ---
+- name: Setup Breakglass User ({{ breakglass_user }})
+  ansible.builtin.user:
+    name: "{{ breakglass_user }}"
+    shell: /bin/bash
+    groups: sudo
+    append: yes
+    password_expire_max: -1
+
+- name: Allow {{ breakglass_user }} Passwordless Sudo
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/{{ breakglass_user }}"
+    content: "{{ breakglass_user }} ALL=(ALL) NOPASSWD:ALL"
+    mode: '0440'
+    validate: 'visudo -cf %s'
+
+- name: Deploy SSH keys for {{ breakglass_user }}
+  ansible.builtin.authorized_key:
+    user: "{{ breakglass_user }}"
+    key: "{{ item }}"
+    state: present
+  loop: "{{ breakglass_keys }}"
+  no_log: true
+
+# --- 4. SUDO SECURITY (Dedicated Sudo Logging) ---
+
+- name: Enable dedicated Sudo logging
+  ansible.builtin.lineinfile:
+    path: /etc/sudoers
+    line: 'Defaults log_output, logfile="/var/log/sudo.log"'
+    validate: 'visudo -cf %s'
+
+# --- 5. HARDENED ROOT ACCESS (The Trap) ---
+- name: Lockdown Root with 10s Warning
+  ansible.builtin.authorized_key:
+    user: root
+    key: "{{ item }}"
+    exclusive: yes
+    key_options: 'no-port-forwarding,no-agent-forwarding,no-X11-forwarding,command="echo \"⚠️ SECURITY WARNING: Direct root login is restricted. Please use {{ base_user }} or {{ breakglass_user }}.\"; sleep 10; exit 1"'
+  loop: "{{ breakglass_keys }}"
+  no_log: true
+
+# --- 6. VISUAL POLISH (Prompts & Warnings) ---
+- name: Configure Bash Environments
+  ansible.builtin.blockinfile:
+    path: "{{ item.path }}"
+    create: yes
+    marker: "# {mark} ANSIBLE MANAGED BLOCK"
+    block: |
+      force_color_prompt=yes
+      {% if item.type == 'base' %}
+      export PS1="\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ "
+      {% elif item.type == 'root' %}
+      export PS1="\[\033[01;31m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]# "
+      echo "⚠️  WARNING: You are now ROOT! ⚠️"
+      {% elif item.type == 'breakglass' %}
+      export PS1="\[\033[01;35m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]# "
+      echo "🚨 BREAKGLASS ACCOUNT: USE ONLY FOR EMERGENCY ACCESS! 🚨"
+      echo "All actions are logged and monitored. Proceed with extreme caution!"
+      {% endif %}
+  when: enable_custom_prompts | default(true) | bool
+  loop:
+    - { path: "/home/{{ base_user | default('deployer') }}/.bashrc", type: 'base' }
+    - { path: "/home/{{ breakglass_user }}/.bashrc", type: 'breakglass' }
+    - { path: "/root/.bashrc", type: 'root' }

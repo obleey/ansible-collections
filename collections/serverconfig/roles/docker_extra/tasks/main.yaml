@@ -1,0 +1,21 @@
+---
+- name: Deploy Docker Prune units
+  ansible.builtin.template:
+    src: "{{ item.src }}.j2"
+    dest: "/etc/systemd/system/{{ item.dest }}"
+    mode: '0644'
+  loop:
+    - { src: 'docker-image-prune.service', dest: 'docker-image-prune.service' }
+    - { src: 'docker-volume-prune.service', dest: 'docker-volume-prune.service' }
+    - { src: 'docker-prune.timer', dest: 'docker-image-prune.timer' }
+    - { src: 'docker-prune.timer', dest: 'docker-volume-prune.timer' }
+  notify: Reload Systemd
+
+- name: Enable and Start Docker Prune Timers
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: yes
+    state: started
+  loop:
+    - docker-image-prune.timer
+    - docker-volume-prune.timer

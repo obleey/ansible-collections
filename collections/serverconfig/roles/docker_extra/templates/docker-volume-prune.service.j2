@@ -1,0 +1,7 @@
+[Unit]
+Description=Docker Volume Cleanup (All Unused)
+After=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/docker volume prune -f --filter "{{ docker_volume_prune_filters | default('until=24h') }}"

@@ -1,0 +1,43 @@
+---
+- name: Check required variables
+  ansible.builtin.assert:
+    that:
+      - mount_entries is defined
+      - mount_entries | length > 0
+    fail_msg: "mount_entries is not defined or is empty."
+
+- name: Install NFS client packages
+  ansible.builtin.package:
+    name: "{{ 'nfs-common' if ansible_facts['os_family'] == 'Debian' else 'nfs-utils' }}"
+    state: present
+  when:
+    - mount_entries | length > 0
+    - (mount_entries | map(attribute='fstype') | list | intersect(['nfs', 'nfs4'])) | length > 0
+
+- name: Install CIFS client packages
+  ansible.builtin.package:
+    name: cifs-utils
+    state: present
+  when:
+    - mount_entries | length > 0
+    - (mount_entries | map(attribute='fstype') | list | intersect(['cifs', 'smbfs'])) | length > 0
+
+- name: Create mount point directories
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: "{{ item.mode | default('0755') }}"
+  loop: "{{ mount_entries }}"
+  when: mount_entries | length > 0
+
+- name: Add mounts to fstab and mount
+  ansible.builtin.mount:
+    path: "{{ item.path }}"
+    src: "{{ item.src }}"
+    fstype: "{{ item.fstype }}"
+    opts: "{{ item.opts | default('defaults') }}"
+    state: "{{ item.state | default('mounted') }}"
+    dump: "{{ item.dump | default(0) }}"
+    passno: "{{ item.passno | default(0) }}"
+  loop: "{{ mount_entries }}"
+  when: mount_entries | length > 0

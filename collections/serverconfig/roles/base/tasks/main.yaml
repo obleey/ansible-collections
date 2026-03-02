@@ -1,0 +1,11 @@
+---
+- name: OS check
+  debug:
+    msg: "Detected OS Family: {{ ansible_facts['os_family'] }}"
+- name: Setup base on Debian based systems
+  ansible.builtin.include_tasks: setup-Debian.yaml
+  when: ansible_facts['os_family'] == "Debian"
+
+- name: Setup base on RedHat based systems
+  ansible.builtin.include_tasks: setup-RedHat.yaml
+  when: ansible_facts['os_family'] == "RedHat"

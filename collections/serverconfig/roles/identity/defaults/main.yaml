@@ -1,0 +1,15 @@
+---
+# --- Standard User Defaults ---
+base_user: deployer
+base_user_keys: []
+# Default password hash for 'deployer' (e.g., 'password123' - change in host_vars!)
+# It's better to leave this blank or locked ('!') to force host_vars definition
+base_user_password_hash: "!" 
+
+# --- Breakglass User Defaults ---
+breakglass_user: breakglass
+breakglass_keys: []
+
+# --- System Prompt Defaults ---
+# This allows you to toggle the colorful prompts globally if needed
+enable_custom_prompts: true

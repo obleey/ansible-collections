@@ -1,0 +1,7 @@
+[sshd]
+enabled = true
+port = {{ ssh_port }}
+filter = sshd
+logpath = /var/log/auth.log
+maxretry = {{ f2b_maxretry | default(5) }}
+bantime = {{ f2b_bantime | default(600) }}

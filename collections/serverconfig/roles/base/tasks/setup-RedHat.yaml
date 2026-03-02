@@ -1,0 +1,151 @@
+---
+- name: Validate required variables
+  ansible.builtin.assert:
+    that:
+      - base_packages_common is defined
+      - base_packages_redhat is defined
+      - hostname is defined
+      - server_environment is defined
+    fail_msg: "Required variables are not defined. Please check your playbook."
+
+- name: Enable EPEL repository (for extra packages)
+  ansible.builtin.dnf:
+    name: epel-release
+    state: present
+
+- name: Update package cache and upgrade system
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+
+- name: Install common base packages
+  ansible.builtin.dnf:
+    name: "{{ base_packages_common + base_packages_redhat }}"
+    state: present
+
+- name: Set hostname
+  ansible.builtin.hostname:
+    name: "{{ hostname }}-{{ server_environment }}"
+
+- name: Install dnf-automatic for automatic updates
+  ansible.builtin.dnf:
+    name: dnf-automatic
+    state: present
+
+- name: Configure dnf-automatic for automatic updates
+  ansible.builtin.lineinfile:
+    path: /etc/dnf/automatic.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+  loop:
+    - { regexp: "^apply_updates", line: "apply_updates = yes" }
+    - { regexp: "^upgrade_type", line: "upgrade_type = default" }
+  notify: Restart dnf-automatic
+
+- name: Enable dnf-automatic timer
+  ansible.builtin.systemd:
+    name: dnf-automatic.timer
+    enabled: yes
+    state: started
+  when: ansible_os_family == 'RedHat'
+
+- name: Install Fail2Ban
+  ansible.builtin.dnf:
+    name: fail2ban
+    state: present
+  when: ansible_os_family == 'RedHat'
+
+- name: Configure Fail2Ban
+  ansible.builtin.template:
+    src: jail.local.j2
+    dest: /etc/fail2ban/jail.local
+    mode: "0644"
+  notify: Restart Fail2Ban
+
+- name: Enable and start Fail2Ban
+  ansible.builtin.systemd:
+    name: fail2ban
+    enabled: yes
+    state: started
+  when: ansible_os_family == 'RedHat'
+
+- name: Configure Logrotate for Sudo
+  ansible.builtin.template:
+    src: sudo_logrotate.j2
+    dest: /etc/logrotate.d/sudo
+    mode: "0644"
+
+- name: Ensure policycoreutils-python-utils (semanage) for SELinux port
+  ansible.builtin.dnf:
+    name: policycoreutils-python-utils
+    state: present
+
+- name: Allow sshd to bind to custom port (SELinux)
+  ansible.builtin.command: semanage port -a -t ssh_port_t -p tcp {{ ssh_port }}
+  register: semanage_ssh_port
+  failed_when: semanage_ssh_port.rc != 0 and 'already defined' not in (semanage_ssh_port.stderr | default(''))
+  changed_when: semanage_ssh_port.rc == 0
+
+- name: Allow custom SSH port through firewall
+  ansible.posix.firewalld:
+    port: "{{ ssh_port }}/tcp"
+    permanent: yes
+    state: enabled
+    immediate: yes
+
+- name: Harden SSH Configuration
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+    state: present
+  loop:
+    - { regexp: "^#?Port", line: "Port {{ ssh_port }}" }
+    - {
+        regexp: "^#?PermitRootLogin",
+        line: "PermitRootLogin prohibit-password",
+      }
+    - { regexp: "^#?PasswordAuthentication", line: "PasswordAuthentication no" }
+    - { regexp: "^#?MaxAuthTries", line: "MaxAuthTries 3" }
+    - { regexp: "^#?AllowAgentForwarding", line: "AllowAgentForwarding no" }
+  notify: Restart SSH
+
+- name: Ensure br_netfilter loads at boot (for bridge sysctl)
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/br_netfilter.conf
+    content: "br_netfilter\n"
+    mode: "0644"
+
+- name: Load br_netfilter module now
+  ansible.builtin.command: modprobe br_netfilter
+  changed_when: false
+  ignore_errors: true
+
+- name: Apply Container-Optimized Kernel Hardening
+  ansible.builtin.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+  loop:
+    - { key: "net.ipv4.conf.all.rp_filter", value: "2" }
+    - { key: "net.ipv4.conf.default.rp_filter", value: "2" }
+    - { key: "net.ipv4.ip_forward", value: "1" }
+    - { key: "net.ipv6.conf.all.forwarding", value: "1" }
+    - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
+
+- name: Deploy and permission aliases.sh
+  ansible.builtin.copy:
+    src: aliases.sh
+    dest: /etc/profile.d/aliases.sh
+    mode: "0755"
+
+- name: Verify SSH connectivity on custom port
+  ansible.builtin.wait_for:
+    port: "{{ ssh_port }}"
+    host: "{{ inventory_hostname }}"
+    search_regex: OpenSSH
+    timeout: 5
+  delegate_to: localhost
+  become: false

@@ -1,0 +1,16 @@
+// Managed by Ansible - do not edit manually
+Unattended-Upgrade::Allowed-Origins {
+    "${distro_id}:${distro_codename}-security";
+    "Debian:testing-security";
+};
+
+Unattended-Upgrade::Package-Blacklist {
+{% for pkg in upgrade_blacklist | default([]) %}
+    "{{ pkg }}";
+{% endfor %}
+};
+
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+Unattended-Upgrade::Automatic-Reboot "{{ auto_reboot | default('true') }}";
+Unattended-Upgrade::Automatic-Reboot-Time "{{ auto_reboot_time | default('04:30') }}";

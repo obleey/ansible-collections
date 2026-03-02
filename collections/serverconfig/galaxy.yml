@@ -1,0 +1,10 @@
+namespace: infra
+name: serverconfig
+version: 1.0.8
+readme: README.md
+authors:
+  - Miha Oblišar <miha.oblishar@gmail.com>
+description: Server config role for basic server configs
+tags: []
+dependencies: {}
+repository: ""
