@@ -7,23 +7,29 @@
 
 ## Collections
 
-- **[infra.serverconfig](collections/serverconfig/README.md)** – Server configuration (base, identity, docker_extra, mounts).
-- **[infra.stack](collections/stack/README.md)** – Application stacks (WordPress, Django etc.)
+- **[infra.serverconfig](serverconfig/README.md)** – Server configuration (base, identity, docker_extra, mounts).
+- **[infra.stack](stack/README.md)** – Application stacks (WordPress, Django etc.)
 
 ## Installation
 
-Install or update from Git:
+Install or update from Git (all collections):
 
 ```bash
-ansible-galaxy collection install git+https://github.com/obleey/ansible-collections.git
+ansible-galaxy collection install git+https://github.com/obleey/ansible-collections.git#/collections
+```
+
+Install a single collection by name (use a URL fragment for the path; comma is for branch/tag):
+
+```bash
+ansible-galaxy collection install git+https://github.com/obleey/ansible-collections.git#/collections/serverconfig
 ```
 
 Build and install from a local clone:
 
 ```bash
 cd ansible-collections
-ansible-galaxy collection build collections/infra/serverconfig
-ansible-galaxy collection build collections/infra/stack
+ansible-galaxy collection build serverconfig
+ansible-galaxy collection build stack
 ansible-galaxy collection install infra-serverconfig-*.tar.gz
 ansible-galaxy collection install infra-stack-*.tar.gz
 ```
