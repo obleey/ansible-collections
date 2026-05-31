@@ -57,7 +57,7 @@
     - {
         regexp: '^#?PermitRootLogin',
         line: 'PermitRootLogin prohibit-password',
-      } # Only keys for root
+      }
     - { regexp: '^#?PasswordAuthentication', line: 'PasswordAuthentication no' } # Kill passwords
     - { regexp: '^#?MaxAuthTries', line: 'MaxAuthTries 3' }
     - { regexp: '^#?AllowAgentForwarding', line: 'AllowAgentForwarding no' }
