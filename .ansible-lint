@@ -1,2 +1,4 @@
 skip_list:
-  - var-naming
+  - var-naming # role vars don't need role-name prefix
+  - package-latest # apt install without pinned versions is intentional
+  - yaml[indentation] # managed by formatter, not lint
