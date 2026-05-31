@@ -4,7 +4,7 @@
     that:
       - mount_entries is defined
       - mount_entries | length > 0
-    fail_msg: "mount_entries is not defined or is empty."
+    fail_msg: 'mount_entries is not defined or is empty.'
 
 - name: Install NFS client packages
   ansible.builtin.package:
@@ -24,20 +24,20 @@
 
 - name: Create mount point directories
   ansible.builtin.file:
-    path: "{{ item.path }}"
+    path: '{{ item.path }}'
     state: directory
     mode: "{{ item.mode | default('0755') }}"
-  loop: "{{ mount_entries }}"
+  loop: '{{ mount_entries }}'
   when: mount_entries | length > 0
 
 - name: Add mounts to fstab and mount
-  ansible.builtin.mount:
-    path: "{{ item.path }}"
-    src: "{{ item.src }}"
-    fstype: "{{ item.fstype }}"
+  ansible.posix.mount:
+    path: '{{ item.path }}'
+    src: '{{ item.src }}'
+    fstype: '{{ item.fstype }}'
     opts: "{{ item.opts | default('defaults') }}"
     state: "{{ item.state | default('mounted') }}"
-    dump: "{{ item.dump | default(0) }}"
-    passno: "{{ item.passno | default(0) }}"
-  loop: "{{ mount_entries }}"
+    dump: '{{ item.dump | default(0) }}'
+    passno: '{{ item.passno | default(0) }}'
+  loop: '{{ mount_entries }}'
   when: mount_entries | length > 0

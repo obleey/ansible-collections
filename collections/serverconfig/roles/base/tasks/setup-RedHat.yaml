@@ -6,7 +6,7 @@
       - base_packages_redhat is defined
       - hostname is defined
       - server_environment is defined
-    fail_msg: "Required variables are not defined. Please check your playbook."
+    fail_msg: 'Required variables are not defined. Please check your playbook.'
 
 - name: Enable EPEL repository (for extra packages)
   ansible.builtin.dnf:
@@ -15,17 +15,17 @@
 
 - name: Update package cache and upgrade system
   ansible.builtin.dnf:
-    name: "*"
+    name: '*'
     state: latest
 
 - name: Install common base packages
   ansible.builtin.dnf:
-    name: "{{ base_packages_common + base_packages_redhat }}"
+    name: '{{ base_packages_common + base_packages_redhat }}'
     state: present
 
 - name: Set hostname
   ansible.builtin.hostname:
-    name: "{{ hostname }}-{{ server_environment }}"
+    name: '{{ hostname }}-{{ server_environment }}'
 
 - name: Install dnf-automatic for automatic updates
   ansible.builtin.dnf:
@@ -35,18 +35,18 @@
 - name: Configure dnf-automatic for automatic updates
   ansible.builtin.lineinfile:
     path: /etc/dnf/automatic.conf
-    regexp: "{{ item.regexp }}"
-    line: "{{ item.line }}"
+    regexp: '{{ item.regexp }}'
+    line: '{{ item.line }}'
     state: present
   loop:
-    - { regexp: "^apply_updates", line: "apply_updates = yes" }
-    - { regexp: "^upgrade_type", line: "upgrade_type = default" }
+    - { regexp: '^apply_updates', line: 'apply_updates = yes' }
+    - { regexp: '^upgrade_type', line: 'upgrade_type = default' }
   notify: Restart dnf-automatic
 
 - name: Enable dnf-automatic timer
   ansible.builtin.systemd:
     name: dnf-automatic.timer
-    enabled: yes
+    enabled: true
     state: started
   when: ansible_os_family == 'RedHat'
 
@@ -60,13 +60,13 @@
   ansible.builtin.template:
     src: jail.local.j2
     dest: /etc/fail2ban/jail.local
-    mode: "0644"
+    mode: '0644'
   notify: Restart Fail2Ban
 
 - name: Enable and start Fail2Ban
   ansible.builtin.systemd:
     name: fail2ban
-    enabled: yes
+    enabled: true
     state: started
   when: ansible_os_family == 'RedHat'
 
@@ -74,7 +74,7 @@
   ansible.builtin.template:
     src: sudo_logrotate.j2
     dest: /etc/logrotate.d/sudo
-    mode: "0644"
+    mode: '0644'
 
 - name: Ensure policycoreutils-python-utils (semanage) for SELinux port
   ansible.builtin.dnf:
@@ -89,33 +89,33 @@
 
 - name: Allow custom SSH port through firewall
   ansible.posix.firewalld:
-    port: "{{ ssh_port }}/tcp"
-    permanent: yes
+    port: '{{ ssh_port }}/tcp'
+    permanent: true
     state: enabled
-    immediate: yes
+    immediate: true
 
 - name: Harden SSH Configuration
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
-    regexp: "{{ item.regexp }}"
-    line: "{{ item.line }}"
+    regexp: '{{ item.regexp }}'
+    line: '{{ item.line }}'
     state: present
   loop:
-    - { regexp: "^#?Port", line: "Port {{ ssh_port }}" }
+    - { regexp: '^#?Port', line: 'Port {{ ssh_port }}' }
     - {
-        regexp: "^#?PermitRootLogin",
-        line: "PermitRootLogin prohibit-password",
+        regexp: '^#?PermitRootLogin',
+        line: 'PermitRootLogin prohibit-password',
       }
-    - { regexp: "^#?PasswordAuthentication", line: "PasswordAuthentication no" }
-    - { regexp: "^#?MaxAuthTries", line: "MaxAuthTries 3" }
-    - { regexp: "^#?AllowAgentForwarding", line: "AllowAgentForwarding no" }
+    - { regexp: '^#?PasswordAuthentication', line: 'PasswordAuthentication no' }
+    - { regexp: '^#?MaxAuthTries', line: 'MaxAuthTries 3' }
+    - { regexp: '^#?AllowAgentForwarding', line: 'AllowAgentForwarding no' }
   notify: Restart SSH
 
 - name: Ensure br_netfilter loads at boot (for bridge sysctl)
   ansible.builtin.copy:
     dest: /etc/modules-load.d/br_netfilter.conf
     content: "br_netfilter\n"
-    mode: "0644"
+    mode: '0644'
 
 - name: Load br_netfilter module now
   ansible.builtin.command: modprobe br_netfilter
@@ -124,27 +124,27 @@
 
 - name: Apply Container-Optimized Kernel Hardening
   ansible.builtin.sysctl:
-    name: "{{ item.key }}"
-    value: "{{ item.value }}"
+    name: '{{ item.key }}'
+    value: '{{ item.value }}'
     state: present
-    reload: yes
+    reload: true
   loop:
-    - { key: "net.ipv4.conf.all.rp_filter", value: "2" }
-    - { key: "net.ipv4.conf.default.rp_filter", value: "2" }
-    - { key: "net.ipv4.ip_forward", value: "1" }
-    - { key: "net.ipv6.conf.all.forwarding", value: "1" }
-    - { key: "net.bridge.bridge-nf-call-iptables", value: "1" }
+    - { key: 'net.ipv4.conf.all.rp_filter', value: '2' }
+    - { key: 'net.ipv4.conf.default.rp_filter', value: '2' }
+    - { key: 'net.ipv4.ip_forward', value: '1' }
+    - { key: 'net.ipv6.conf.all.forwarding', value: '1' }
+    - { key: 'net.bridge.bridge-nf-call-iptables', value: '1' }
 
 - name: Deploy and permission aliases.sh
   ansible.builtin.copy:
     src: aliases.sh
     dest: /etc/profile.d/aliases.sh
-    mode: "0755"
+    mode: '0755'
 
 - name: Verify SSH connectivity on custom port
   ansible.builtin.wait_for:
-    port: "{{ ssh_port }}"
-    host: "{{ inventory_hostname }}"
+    port: '{{ ssh_port }}'
+    host: '{{ inventory_hostname }}'
     search_regex: OpenSSH
     timeout: 5
   delegate_to: localhost

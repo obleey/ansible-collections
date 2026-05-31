@@ -6,22 +6,22 @@
       - base_packages_debian is defined
       - hostname is defined
       - server_environment is defined
-    fail_msg: "Required variables are not defined. Please check your playbook."
+    fail_msg: 'Required variables are not defined. Please check your playbook.'
 
 - name: Update apt cache and upgrade dist
   ansible.builtin.apt:
-    update_cache: yes
+    update_cache: true
     upgrade: dist
     cache_valid_time: 3600
 
 - name: Install common base packages
   ansible.builtin.apt:
-    name: "{{ base_packages_common + base_packages_debian }}"
+    name: '{{ base_packages_common + base_packages_debian }}'
     state: present
 
 - name: Set hostname
   ansible.builtin.hostname:
-    name: "{{ hostname }}-{{ server_environment }}"
+    name: '{{ hostname }}-{{ server_environment }}'
 
 - name: Enable automatic updates (debconf)
   ansible.builtin.debconf:
@@ -32,14 +32,13 @@
 
 - name: Configure Unattended-Upgrades templates
   ansible.builtin.template:
-    src: "{{ item }}.j2"
-    dest: "/etc/apt/apt.conf.d/{{ item }}"
+    src: '{{ item }}.j2'
+    dest: '/etc/apt/apt.conf.d/{{ item }}'
     mode: '0644'
   loop:
     - 50unattended-upgrades
     - 20auto-upgrades
   notify: Restart Unattended-Upgrades
-
 
 - name: Configure Logrotate for Sudo
   ansible.builtin.template:
@@ -50,32 +49,35 @@
 - name: Harden SSH Configuration
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
-    regexp: "{{ item.regexp }}"
-    line: "{{ item.line }}"
+    regexp: '{{ item.regexp }}'
+    line: '{{ item.line }}'
     state: present
   loop:
-    - { regexp: '^#?Port', line: "Port {{ ssh_port }}" }
-    - { regexp: '^#?PermitRootLogin', line: "PermitRootLogin prohibit-password" } # Only keys for root
-    - { regexp: '^#?PasswordAuthentication', line: "PasswordAuthentication no" } # Kill passwords
-    - { regexp: '^#?MaxAuthTries', line: "MaxAuthTries 3" } # Stop brute force early
-    - { regexp: '^#?AllowAgentForwarding', line: "AllowAgentForwarding no" }
+    - { regexp: '^#?Port', line: 'Port {{ ssh_port }}' }
+    - {
+        regexp: '^#?PermitRootLogin',
+        line: 'PermitRootLogin prohibit-password',
+      } # Only keys for root
+    - { regexp: '^#?PasswordAuthentication', line: 'PasswordAuthentication no' } # Kill passwords
+    - { regexp: '^#?MaxAuthTries', line: 'MaxAuthTries 3' }
+    - { regexp: '^#?AllowAgentForwarding', line: 'AllowAgentForwarding no' }
   notify: Restart SSH
 
 - name: Apply Container-Optimized Kernel Hardening
-  ansible.builtin.sysctl:
-    name: "{{ item.key }}"
-    value: "{{ item.value }}"
+  ansible.posix.sysctl:
+    name: '{{ item.key }}'
+    value: '{{ item.value }}'
     state: present
-    reload: yes
+    reload: true
   loop:
     # Use '2' (Loose) for rp_filter if using K8s/Docker bridge networking
     - { key: 'net.ipv4.conf.all.rp_filter', value: '2' }
     - { key: 'net.ipv4.conf.default.rp_filter', value: '2' }
-    
+
     # Enable IP Forwarding (REQUIRED for Docker/K8s)
     - { key: 'net.ipv4.ip_forward', value: '1' }
     - { key: 'net.ipv6.conf.all.forwarding', value: '1' }
-    
+
     # Bridge Netfilter (Required for K8s to see bridged traffic)
     - { key: 'net.bridge.bridge-nf-call-iptables', value: '1' }
 - name: Configure Fail2Ban
@@ -93,8 +95,8 @@
 
 - name: Verify SSH connectivity on custom port
   ansible.builtin.wait_for:
-    port: "{{ ssh_port }}"
-    host: "{{ inventory_hostname }}"
+    port: '{{ ssh_port }}'
+    host: '{{ inventory_hostname }}'
     search_regex: OpenSSH
     timeout: 5
   delegate_to: localhost

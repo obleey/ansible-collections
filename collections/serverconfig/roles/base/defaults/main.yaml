@@ -2,7 +2,7 @@
 ssh_port: 4042
 
 # Path to the home dir for .bashrc where env vars are set (e.g. /root or /home/ubuntu)
-env_bashrc_path: "/root"
+env_bashrc_path: '/root'
 # Optional extra env vars (list of { name: VAR_NAME, value: value })
 env_vars: []
 

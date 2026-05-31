@@ -7,12 +7,12 @@
       - breakglass_user is defined
       - breakglass_keys is defined
       - (base_user_keys | length) > 0 or (breakglass_keys | length) > 0
-    fail_msg: "Required variables are missing or no SSH keys provided. Ensure base_user_keys or breakglass_keys contains at least one valid public key."
+    fail_msg: 'Required variables are missing or no SSH keys provided. Ensure base_user_keys or breakglass_keys contains at least one valid public key.'
 
 # --- 1. THE STANDARD USER (Daily Driver) ---
 - name: Setup Standard User ({{ base_user }})
   ansible.builtin.user:
-    name: "{{ base_user }}"
+    name: '{{ base_user }}'
     shell: /bin/bash
     groups: wheel
     append: yes
@@ -20,16 +20,16 @@
 
 - name: Deploy SSH keys for {{ base_user }}
   ansible.builtin.authorized_key:
-    user: "{{ base_user }}"
-    key: "{{ item }}"
+    user: '{{ base_user }}'
+    key: '{{ item }}'
     state: present
-  loop: "{{ base_user_keys }}"
+  loop: '{{ base_user_keys }}'
   no_log: true
 
 # --- 2. THE BREAKGLASS USER (Emergency Only) ---
 - name: Setup Breakglass User ({{ breakglass_user }})
   ansible.builtin.user:
-    name: "{{ breakglass_user }}"
+    name: '{{ breakglass_user }}'
     shell: /bin/bash
     groups: wheel
     append: yes
@@ -37,17 +37,17 @@
 
 - name: Allow {{ breakglass_user }} Passwordless Sudo
   ansible.builtin.copy:
-    dest: "/etc/sudoers.d/{{ breakglass_user }}"
-    content: "{{ breakglass_user }} ALL=(ALL) NOPASSWD:ALL"
-    mode: "0440"
-    validate: "visudo -cf %s"
+    dest: '/etc/sudoers.d/{{ breakglass_user }}'
+    content: '{{ breakglass_user }} ALL=(ALL) NOPASSWD:ALL'
+    mode: '0440'
+    validate: 'visudo -cf %s'
 
 - name: Deploy SSH keys for {{ breakglass_user }}
   ansible.builtin.authorized_key:
-    user: "{{ breakglass_user }}"
-    key: "{{ item }}"
+    user: '{{ breakglass_user }}'
+    key: '{{ item }}'
     state: present
-  loop: "{{ breakglass_keys }}"
+  loop: '{{ breakglass_keys }}'
   no_log: true
 
 # --- 4. SUDO SECURITY (Dedicated Sudo Logging) ---
@@ -56,25 +56,25 @@
   ansible.builtin.lineinfile:
     path: /etc/sudoers
     line: 'Defaults log_output, logfile="/var/log/sudo.log"'
-    validate: "visudo -cf %s"
+    validate: 'visudo -cf %s'
 
 # --- 5. HARDENED ROOT ACCESS (The Trap) ---
 - name: Lockdown Root with 10s Warning
   ansible.builtin.authorized_key:
     user: root
-    key: "{{ item }}"
+    key: '{{ item }}'
     exclusive: yes
     key_options: 'no-port-forwarding,no-agent-forwarding,no-X11-forwarding,command="echo \"⚠️ SECURITY WARNING: Direct root login is restricted. Please use {{ base_user }} or {{ breakglass_user }}.\"; sleep 10; exit 1"'
-  loop: "{{ breakglass_keys }}"
+  loop: '{{ breakglass_keys }}'
   when: breakglass_keys | length > 0
   no_log: true
 
 # --- 6. VISUAL POLISH (Prompts & Warnings) ---
 - name: Configure Bash Environments
   ansible.builtin.blockinfile:
-    path: "{{ item.path }}"
+    path: '{{ item.path }}'
     create: yes
-    marker: "# {mark} ANSIBLE MANAGED BLOCK"
+    marker: '# {mark} ANSIBLE MANAGED BLOCK'
     block: |
       force_color_prompt=yes
       {% if item.type == 'base' %}
@@ -91,7 +91,7 @@
   loop:
     - {
         path: "/home/{{ base_user | default('deployer') }}/.bashrc",
-        type: "base",
+        type: 'base',
       }
-    - { path: "/home/{{ breakglass_user }}/.bashrc", type: "breakglass" }
-    - { path: "/root/.bashrc", type: "root" }
+    - { path: '/home/{{ breakglass_user }}/.bashrc', type: 'breakglass' }
+    - { path: '/root/.bashrc', type: 'root' }

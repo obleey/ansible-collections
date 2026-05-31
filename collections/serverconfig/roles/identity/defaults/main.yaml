@@ -4,7 +4,7 @@ base_user: deployer
 base_user_keys: []
 # Default password hash for 'deployer' (e.g., 'password123' - change in host_vars!)
 # It's better to leave this blank or locked ('!') to force host_vars definition
-base_user_password_hash: "!" 
+base_user_password_hash: '!'
 
 # --- Breakglass User Defaults ---
 breakglass_user: breakglass

@@ -1,6 +1,6 @@
 ---
 - name: OS check
-  debug:
+  ansible.buitin.debug:
     msg: "Detected OS Family: {{ ansible_facts['os_family'] }}"
 - name: Setup base on Debian based systems
   ansible.builtin.include_tasks: setup-Debian.yaml
