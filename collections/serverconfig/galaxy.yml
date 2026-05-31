@@ -5,6 +5,11 @@ readme: README.md
 authors:
   - Miha Oblišar <miha.oblishar@gmail.com>
 description: Server config role for basic server configs
-tags: []
+tags:
+  - infrastructure
+  - linux
+  - security
 dependencies: {}
-repository: ""
+repository: ''
+license:
+  - MIT
